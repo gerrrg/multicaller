@@ -4,6 +4,10 @@ import pkgutil
 from web3 import Web3
 from web3._utils.abi import get_abi_output_types
 
+def split(a, n):
+    k, m = divmod(len(a), n)
+    return (list(a[i*k+min(i, m):(i+1)*k+min(i+1, m)] for i in range(n)));
+
 class multicaller(object):
 	addressByChainId = {
 		1: '0xeefba1e63905ef1d7acba5a8513c70307c1ce441',
@@ -18,11 +22,13 @@ class multicaller(object):
 	    42161: '0x269ff446d9892c9e19082564df3f5e8741e190a1'
 	};
 
-	def __init__(self, _chainId, _web3=None, _rpcEndpoint=None):
+	def __init__(self, _chainId, _web3=None, _rpcEndpoint=None, _batches=1):
 		if _web3 is None and _rpcEndpoint is None:
 			print("[ERROR] You must provide a Web3 instance or an RPC Endpoint.");
 			print();
 			quit();
+
+		self.batches = _batches;
 
 		if not _web3 is None:
 			self.web3 = _web3;
@@ -56,11 +62,26 @@ class multicaller(object):
 		self.decoders.append(get_abi_output_types(fn.abi));
 
 	def execute(self):
-		output = self.mcContract.functions.aggregate(self.payload).call();
-		outputDataRaw = output[1];
-		outputData = [];
-		for rawOutput, decoder in zip(outputDataRaw, self.decoders):
-			outputData.append(self.web3.codec.decode_abi(decoder, rawOutput));
+
+		while True:
+			print("Executing with", self.batches, "batches!")
+			sublistsPayload = split(self.payload, self.batches);
+			sublistsDecoder = split(self.decoders, self.batches);
+			try:
+				outputData = [];
+				for sublistPayload, sublistDecoder in zip(sublistsPayload, sublistsDecoder):
+					output = self.mcContract.functions.aggregate(sublistPayload).call();
+					outputDataRaw = output[1];
+					for rawOutput, decoder in zip(outputDataRaw, sublistDecoder):
+						outputData.append(self.web3.codec.decode_abi(decoder, rawOutput));
+			except OverflowError:
+				self.batches += 1;
+				print("Too many requests in one batch. Reattempting with", self.batches, "batches...")
+			except:
+				break;
+			# if everything worked
+			break;
+
 		self.reset();
 		return(outputData);
 
