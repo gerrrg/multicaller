@@ -10,25 +10,26 @@ def split(a, n):
 
 class multicaller(object):
 	addressByChainId = {
-		1: '0xeefba1e63905ef1d7acba5a8513c70307c1ce441',
-		4: '0x42Ad527de7d4e9d9d011aC45B31D8551f8Fe9821',
-	    5: '0x3b2A02F22fCbc872AF77674ceD303eb269a46ce3',
-	    42: '0x2cc8688C5f75E365aaEEb4ea8D6a480405A48D2A',
-		56: '0x1Ee38d535d541c55C9dae27B12edf090C608E6Fb',
-		100: '0xb5b692a88BDFc81ca69dcB1d924f59f0413A602a',
-		128: '0xc9a9F768ebD123A00B52e7A0E590df2e9E998707',
-	    137: '0xa1B2b503959aedD81512C37e9dce48164ec6a94d',
-		250: '0xb828C456600857abd4ed6C32FAcc607bD0464F4F',
-	    42161: '0x269ff446d9892c9e19082564df3f5e8741e190a1'
+		1: 		'0xeefba1e63905ef1d7acba5a8513c70307c1ce441',
+		4: 		'0x42Ad527de7d4e9d9d011aC45B31D8551f8Fe9821',
+	    5: 		'0x3b2A02F22fCbc872AF77674ceD303eb269a46ce3',
+	    42: 	'0x2cc8688C5f75E365aaEEb4ea8D6a480405A48D2A',
+		56: 	'0x1Ee38d535d541c55C9dae27B12edf090C608E6Fb',
+		100: 	'0xb5b692a88BDFc81ca69dcB1d924f59f0413A602a',
+		128: 	'0xc9a9F768ebD123A00B52e7A0E590df2e9E998707',
+	    137: 	'0xa1B2b503959aedD81512C37e9dce48164ec6a94d',
+		250: 	'0xb828C456600857abd4ed6C32FAcc607bD0464F4F',
+	    42161: 	'0x269ff446d9892c9e19082564df3f5e8741e190a1'
 	};
 
-	def __init__(self, _chainId, _web3=None, _rpcEndpoint=None, _batches=1):
+	def __init__(self, _chainId, _web3=None, _rpcEndpoint=None, _batches=1, _verbose=False):
 		if _web3 is None and _rpcEndpoint is None:
 			print("[ERROR] You must provide a Web3 instance or an RPC Endpoint.");
 			print();
 			quit();
 
 		self.batches = _batches;
+		self.verbose = _verbose;
 
 		if not _web3 is None:
 			self.web3 = _web3;
@@ -62,9 +63,9 @@ class multicaller(object):
 		self.decoders.append(get_abi_output_types(fn.abi));
 
 	def execute(self):
-
 		while True:
-			print("Executing with", self.batches, "batches!")
+			if self.verbose:
+				print("Executing with", self.batches, "batches!");
 			sublistsPayload = split(self.payload, self.batches);
 			sublistsDecoder = split(self.decoders, self.batches);
 			try:
@@ -77,7 +78,8 @@ class multicaller(object):
 			except OverflowError:
 				self.batches += 1;
 				print("Too many requests in one batch. Reattempting with", self.batches, "batches...")
-			except:
+			except Exception as e:
+				print(e.message, e.args)
 				break;
 			# if everything worked
 			break;

@@ -5,6 +5,7 @@ from web3 import Web3
 
 chainId = 137;
 rpcEndpoint = "https://polygon-rpc.com";
+
 web3 = Web3(Web3.HTTPProvider(rpcEndpoint));
 mc = multicaller.multicaller(_chainId=chainId, _web3=web3);
 
