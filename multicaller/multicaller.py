@@ -3,6 +3,7 @@ import json
 import pkgutil
 from web3 import Web3
 from web3._utils.abi import get_abi_output_types
+from functools import cache
 
 def split(a, n):
     k, m = divmod(len(a), n)
@@ -56,11 +57,41 @@ class multicaller(object):
 	def getMultiCallAddress(self):
 		return(self.addressByChainId[self.chainId])
 
-	def addCall(self, address, abi, functionName, args=None):
+	@cache
+	def getContract(self, address, abiString):
+		abi = self.stringToList(abiString);
 		contract = self.web3.eth.contract(self.web3.toChecksumAddress(address), abi=abi);
+		return(contract);
+
+	@cache
+	def getCallData(self, contract, functionName, argsString):
+		args = self.stringToList(argsString);
 		callData = contract.encodeABI(fn_name=functionName, args=args);
-		self.payload.append((self.web3.toChecksumAddress(address), callData));
+		return(callData);
+
+	@cache
+	def getFunction(self, contract, functionName):
 		fn = contract.get_function_by_name(fn_name=functionName);
+		return(fn);
+
+	@cache
+	def decodeData(self, decoder, rawOutput):
+		return(self.web3.codec.decode_abi(self.stringToList(decoder), rawOutput));
+
+	def listToString(self, inputList):
+		outputString = json.dumps(inputList);
+		return(outputString);
+
+	def stringToList(self, inputString):
+		outputList = json.loads(inputString);
+		return(outputList);
+
+	def addCall(self, address, abi, functionName, args=None):
+		contract = self.getContract(address, self.listToString(abi));
+		callData = self.getCallData(contract, functionName, self.listToString(args));
+		fn = self.getFunction(contract, functionName);
+
+		self.payload.append((self.web3.toChecksumAddress(address), callData));
 		self.decoders.append(get_abi_output_types(fn.abi));
 
 	def execute(self):
@@ -73,22 +104,34 @@ class multicaller(object):
 				print("Executing with", self.batches, "batches!");
 			sublistsPayload = split(self.payload, self.batches);
 			sublistsDecoder = split(self.decoders, self.batches);
+
 			try:
 				outputData = [];
 				for sublistPayload, sublistDecoder in zip(sublistsPayload, sublistsDecoder):
-					output = self.mcContract.functions.aggregate(sublistPayload).call();
-					outputDataRaw = output[1];
-					for rawOutput, decoder in zip(outputDataRaw, sublistDecoder):
-						outputData.append(self.web3.codec.decode_abi(decoder, rawOutput));
+
+					success = False;
+					internalRetries = 0;
+					maxInternalRetries = 3;
+					while not success and internalRetries < maxInternalRetries:
+						try:
+							output = self.mcContract.functions.aggregate(sublistPayload).call();
+							outputDataRaw = output[1];
+							for rawOutput, decoder in zip(outputDataRaw, sublistDecoder):
+								outputData.append(self.decodeData(self.listToString(decoder), rawOutput));
+							success = True;
+						except OverflowError:
+							internalRetries += 1;
+							print("Internal retry", internalRetries, "of", maxInternalRetries);
+					if internalRetries >= maxInternalRetries:
+						raise OverflowError;
+
+				break;
 			except OverflowError:
 				self.batches += 1;
-				print("Too many requests in one batch. Reattempting with", self.batches, "batches...")
+				print("Too many requests in one batch. Reattempting with", self.batches, "batches...");
 			except Exception as e:
 				print("Attempt", retries, "of", self.maxRetries, "failed. Retrying...");
 				print(e.message, e.args);
-				break;
-			# if everything worked
-			break;
 
 		self.reset();
 		return(outputData);
