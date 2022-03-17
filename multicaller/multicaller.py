@@ -102,6 +102,8 @@ class multicaller(object):
 		return(outputString);
 
 	def stringToList(self, inputString):
+		if inputString is None:
+			return(None);
 		outputList = json.loads(inputString);
 		return(outputList);
 
