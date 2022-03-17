@@ -78,7 +78,26 @@ class multicaller(object):
 	def decodeData(self, decoder, rawOutput):
 		return(self.web3.codec.decode_abi(self.stringToList(decoder), rawOutput));
 
+	def iterArgs(self, args):
+		isTuple = False;
+		if isinstance(args, tuple):
+			isTuple = True;
+			args = list(args);
+
+		if isinstance(args, list):
+			for i in range(len(args)):
+				arg = args[i];
+				if isinstance(arg, list) or isinstance(arg, tuple):
+					args[i] = self.iterArgs(arg);
+				if isinstance(arg, bytes):
+					args[i] = arg.hex();
+
+		if isTuple:
+			args = tuple(args)
+		return(args)
+
 	def listToString(self, inputList):
+		inputList = self.iterArgs(inputList);
 		outputString = json.dumps(inputList);
 		return(outputString);
 
@@ -87,8 +106,11 @@ class multicaller(object):
 		return(outputList);
 
 	def addCall(self, address, abi, functionName, args=None):
+		if not args is None:
+			args = self.listToString(args);
+
 		contract = self.getContract(address, self.listToString(abi));
-		callData = self.getCallData(contract, functionName, self.listToString(args));
+		callData = self.getCallData(contract, functionName, args);
 		fn = self.getFunction(contract, functionName);
 
 		self.payload.append((self.web3.toChecksumAddress(address), callData));
