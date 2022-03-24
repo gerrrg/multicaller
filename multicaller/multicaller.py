@@ -160,8 +160,8 @@ class multicaller(object):
 				print("Too many requests in one batch. Reattempting with", self.batches, "batches...");
 			except Exception as e:
 				print("Attempt", retries, "of", self.maxRetries, "failed. Retrying...");
-				print(e.message, e.args);
-
+				self.reset();
+				raise e;
 		self.reset();
 		return(outputData);
 
