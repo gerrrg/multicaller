@@ -20,7 +20,9 @@ class multicaller(object):
 		128:	'0xc9a9F768ebD123A00B52e7A0E590df2e9E998707',
 		137:	'0xa1B2b503959aedD81512C37e9dce48164ec6a94d',
 		250:	'0xb828C456600857abd4ed6C32FAcc607bD0464F4F',
-		42161:	'0x269ff446d9892c9e19082564df3f5e8741e190a1'
+		42161:	'0x269ff446d9892c9e19082564df3f5e8741e190a1',
+		42220:	'0x75F59534dd892c1f8a7B172D639FA854D529ada3',
+		43114:	'0x82979a6f8D628270B29F5687bEA2F73D5D0eC77d'
 	};
 
 	def __init__(self, _chainId, _web3=None, _rpcEndpoint=None, _batches=1, _maxRetries=20, _verbose=False):
