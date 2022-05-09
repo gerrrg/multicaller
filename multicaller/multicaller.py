@@ -14,6 +14,7 @@ class multicaller(object):
 		1:	'0xeefba1e63905ef1d7acba5a8513c70307c1ce441',
 		4:	'0x42Ad527de7d4e9d9d011aC45B31D8551f8Fe9821',
 		5:	'0x3b2A02F22fCbc872AF77674ceD303eb269a46ce3',
+		10:	'0x2DC0E2aa608532Da689e89e237dF582B783E552C',
 		42:	'0x2cc8688C5f75E365aaEEb4ea8D6a480405A48D2A',
 		56:	'0x1Ee38d535d541c55C9dae27B12edf090C608E6Fb',
 		100:	'0xb5b692a88BDFc81ca69dcB1d924f59f0413A602a',
@@ -41,7 +42,7 @@ class multicaller(object):
 			self.web3 = Web3(Web3.HTTPProvider(_rpcEndpoint));
 
 		if not _chainId in self.addressByChainId.keys():
-			print("[ERROR} Chain id", _chainId, "not supported!")
+			print("[ERROR] Chain id", _chainId, "not supported!")
 			print();
 			quit();
 		self.chainId = _chainId;
