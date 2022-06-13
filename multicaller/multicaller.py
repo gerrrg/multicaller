@@ -153,7 +153,7 @@ class multicaller(object):
 							# print(e)
 							print("One or more of the calls failed. Please try again after removing the failing call(s).")
 							self.reset();
-							# raise e;
+							raise e;
 					if internalRetries >= maxInternalRetries:
 						raise OverflowError;
 
@@ -163,8 +163,8 @@ class multicaller(object):
 				print("Too many requests in one batch. Reattempting with", self.batches, "batches...");
 			except Exception as e:
 				print("Attempt", retries, "of", self.maxRetries, "failed. Retrying...");
-				self.reset();
-				raise e;
+				# self.reset();
+				# raise e;
 		self.reset();
 		return(outputData);
 
