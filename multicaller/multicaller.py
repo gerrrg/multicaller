@@ -153,7 +153,7 @@ class multicaller(object):
 							# print(e)
 							print("One or more of the calls failed. Please try again after removing the failing call(s).")
 							self.reset();
-							raise e;
+							# raise e;
 					if internalRetries >= maxInternalRetries:
 						raise OverflowError;
 
