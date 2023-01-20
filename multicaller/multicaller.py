@@ -10,23 +10,11 @@ def split(a, n):
     return (list(a[i*k+min(i, m):(i+1)*k+min(i+1, m)] for i in range(n)));
 
 class multicaller(object):
-	addressByChainId = {
-		1:	'0xeefba1e63905ef1d7acba5a8513c70307c1ce441',
-		4:	'0x42Ad527de7d4e9d9d011aC45B31D8551f8Fe9821',
-		5:	'0x3b2A02F22fCbc872AF77674ceD303eb269a46ce3',
-		10:	'0x2DC0E2aa608532Da689e89e237dF582B783E552C',
-		42:	'0x2cc8688C5f75E365aaEEb4ea8D6a480405A48D2A',
-		56:	'0x1Ee38d535d541c55C9dae27B12edf090C608E6Fb',
-		100:	'0xb5b692a88BDFc81ca69dcB1d924f59f0413A602a',
-		128:	'0xc9a9F768ebD123A00B52e7A0E590df2e9E998707',
-		137:	'0xa1B2b503959aedD81512C37e9dce48164ec6a94d',
-		250:	'0xb828C456600857abd4ed6C32FAcc607bD0464F4F',
-		42161:	'0x269ff446d9892c9e19082564df3f5e8741e190a1',
-		42220:	'0x75F59534dd892c1f8a7B172D639FA854D529ada3',
-		43114:	'0x82979a6f8D628270B29F5687bEA2F73D5D0eC77d'
-	};
 
-	def __init__(self, _chainId, _web3=None, _rpcEndpoint=None, _batches=1, _maxRetries=20, _verbose=False):
+	multicall3Address = "0xca11bde05977b3631167028862be2a173976ca11";
+
+	# _chainId is no longer used, but is left as an argument for backwards compatibility
+	def __init__(self, _chainId=None, _web3=None, _rpcEndpoint=None, _batches=1, _maxRetries=20, _verbose=False, _allowFailure=False):
 		if _web3 is None and _rpcEndpoint is None:
 			print("[ERROR] You must provide a Web3 instance or an RPC Endpoint.");
 			print();
@@ -35,30 +23,27 @@ class multicaller(object):
 		self.batches = _batches;
 		self.verbose = _verbose;
 		self.maxRetries = _maxRetries;
+		self.allowFailure = _allowFailure;
 
 		if not _web3 is None:
 			self.web3 = _web3;
 		else:
 			self.web3 = Web3(Web3.HTTPProvider(_rpcEndpoint));
 
-		if not _chainId in self.addressByChainId.keys():
-			print("[ERROR] Chain id", _chainId, "not supported!")
-			print();
-			quit();
-		self.chainId = _chainId;
 		self.mcContract = self.loadMultiCall();
 		self.reset();
 
 	def loadMultiCall(self):
 		multicallAddress = self.getMultiCallAddress();
-		abiPath = os.path.join('abi/multiCall.json');
+		path = 'abi/multicall3.json';
+		abiPath = os.path.join(path);
 		f = pkgutil.get_data(__name__, abiPath).decode();
 		abi = json.loads(f);
 		multiCall = self.web3.eth.contract(self.web3.toChecksumAddress(multicallAddress), abi=abi);
 		return(multiCall);
 
 	def getMultiCallAddress(self):
-		return(self.addressByChainId[self.chainId])
+		return(self.multicall3Address);
 
 	@cache
 	def getContract(self, address, abiString):
@@ -118,7 +103,13 @@ class multicaller(object):
 		callData = self.getCallData(contract, functionName, args);
 		fn = self.getFunction(contract, functionName);
 
-		self.payload.append((self.web3.toChecksumAddress(address), callData));
+		payload = None;
+		if self.allowFailure:
+			payload = (self.web3.toChecksumAddress(address), True, callData);
+		else:
+			payload = (self.web3.toChecksumAddress(address), callData);
+
+		self.payload.append(payload);
 		self.decoders.append(get_abi_output_types(fn.abi));
 
 	def execute(self):
@@ -134,23 +125,40 @@ class multicaller(object):
 
 			try:
 				outputData = [];
+				batchSuccesses = [];
 				for sublistPayload, sublistDecoder in zip(sublistsPayload, sublistsDecoder):
-
 					success = False;
 					internalRetries = 0;
 					maxInternalRetries = 3;
 					while not success and internalRetries < maxInternalRetries:
 						try:
-							output = self.mcContract.functions.aggregate(sublistPayload).call();
+							successes = None;
+							output = None;
+							if self.allowFailure:
+								outputMc3 = self.mcContract.functions.aggregate3(sublistPayload).call();
+								output = list(map(list, zip(*outputMc3))); #convert (list of tuples) to (list of two parallel lists)
+								successes = output[0];
+							else:
+								output = self.mcContract.functions.aggregate(sublistPayload).call();
+								successes = [True] * len(output[1]);
+
 							outputDataRaw = output[1];
-							for rawOutput, decoder in zip(outputDataRaw, sublistDecoder):
-								outputData.append(self.decodeData(self.listToString(decoder), rawOutput));
+							for rawOutput, decoder, currSuccess in zip(outputDataRaw, sublistDecoder, successes):
+
+								# don't bother attempting to decode data if the call failed
+								currOutputData = None;
+								if currSuccess:
+									currOutputData = self.decodeData(self.listToString(decoder), rawOutput);
+
+								outputData.append(currOutputData);
+								batchSuccesses.append(currSuccess);
+
 							success = True;
 						except OverflowError:
 							internalRetries += 1;
 							print("Internal retry", internalRetries, "of", maxInternalRetries);
 						except Exception as e:
-							# print(e)
+							print(e)
 							print("One or more of the calls failed. Please try again after removing the failing call(s).")
 							self.reset();
 							raise e;
@@ -166,7 +174,7 @@ class multicaller(object):
 				# self.reset();
 				# raise e;
 		self.reset();
-		return(outputData);
+		return(outputData, batchSuccesses);
 
 	def reset(self):
 		self.payload = [];

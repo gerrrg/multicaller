@@ -7,7 +7,7 @@ chainId = 137;
 rpcEndpoint = "https://polygon-rpc.com";
 
 web3 = Web3(Web3.HTTPProvider(rpcEndpoint));
-mc = multicaller.multicaller(_chainId=chainId, _web3=web3);
+mc = multicaller.multicaller(_chainId=chainId, _web3=web3, _maxRetries=3, _allowFailure=True);
 
 with open('abi/ERC20.json') as f:
 	erc20Abi = json.load(f);
@@ -26,7 +26,7 @@ for tokenAddress in tokenAddresses:
 	mc.addCall(tokenAddress, erc20Abi, 'name');
 	mc.addCall(tokenAddress, erc20Abi, 'decimals');
 	mc.addCall(tokenAddress, erc20Abi, 'balanceOf', args=[balancerVault]);
-data = mc.execute();
+(data, successes) = mc.execute();
 
 # print results
 itemsPerLine = 4;
