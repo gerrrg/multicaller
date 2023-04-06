@@ -64,6 +64,10 @@ class multicaller(object):
 
 	@cache
 	def decodeData(self, decoder, rawOutput):
+		# check if data came from fallback function
+		if rawOutput == b'':
+			return None;
+
 		return(self.web3.codec.decode_abi(self.stringToList(decoder), rawOutput));
 
 	def iterArgs(self, args):
@@ -115,9 +119,11 @@ class multicaller(object):
 	def execute(self):
 		retries = 0;
 		outputData = None;
+		allQueriesFinished = False;
 		while retries < self.maxRetries:
 			retries += 1;
 			if self.verbose:
+				print("----------------------------------")
 				print("Attempt", retries, "of", self.maxRetries);
 				print("Executing with", self.batches, "batches!");
 			sublistsPayload = split(self.payload, self.batches);
@@ -126,6 +132,8 @@ class multicaller(object):
 			try:
 				outputData = [];
 				batchSuccesses = [];
+				batchesIterated = 0;
+				i=0;
 				for sublistPayload, sublistDecoder in zip(sublistsPayload, sublistsDecoder):
 					success = False;
 					internalRetries = 0;
@@ -154,25 +162,38 @@ class multicaller(object):
 								batchSuccesses.append(currSuccess);
 
 							success = True;
+							batchesIterated += 1;
 						except OverflowError:
 							internalRetries += 1;
-							print("Internal retry", internalRetries, "of", maxInternalRetries);
+							if self.verbose:
+								print("\t\tInternal retry", internalRetries, "of", maxInternalRetries);
 						except Exception as e:
-							print(e)
-							print("One or more of the calls failed. Please try again after removing the failing call(s).")
-							self.reset();
-							raise e;
+							if str(e) == "{'code': -32000, 'message': 'out of gas'}":
+								internalRetries += 1;
+								if self.verbose:
+									print("\t\tInternal retry", internalRetries, "of", maxInternalRetries);
+							else:
+								if self.verbose:
+									print("\t\t" + str(e))
+									print("\t\tOne or more of the calls failed. Please try again after removing the failing call(s).")
+								self.reset();
+								raise e;
 					if internalRetries >= maxInternalRetries:
 						raise OverflowError;
-
-				break;
+				if batchesIterated == len(sublistsPayload):
+					allQueriesFinished = True;
+					break;
 			except OverflowError:
 				self.batches += 1;
-				print("Too many requests in one batch. Reattempting with", self.batches, "batches...");
+				if self.verbose:
+					print("Too many requests in one batch. Reattempting with", self.batches, "batches...");
 			except Exception as e:
-				print("Attempt", retries, "of", self.maxRetries, "failed. Retrying...");
-				# self.reset();
-				# raise e;
+				if self.verbose:
+					print("Attempt", retries, "of", self.maxRetries, "failed. Retrying...");
+				self.reset();
+				raise e;
+			if allQueriesFinished:
+				break;
 		self.reset();
 		return(outputData, batchSuccesses);
 
