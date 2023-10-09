@@ -39,7 +39,7 @@ class multicaller(object):
 		abiPath = os.path.join(path);
 		f = pkgutil.get_data(__name__, abiPath).decode();
 		abi = json.loads(f);
-		multiCall = self.web3.eth.contract(self.web3.toChecksumAddress(multicallAddress), abi=abi);
+		multiCall = self.web3.eth.contract(self.web3.to_checksum_address(multicallAddress), abi=abi);
 		return(multiCall);
 
 	def getMultiCallAddress(self):
