@@ -34,5 +34,7 @@ make all
 We can use tbump to automatically bump our versions in preparation of a release.
 
 ```bash 
-tbump --dry-run --bump=patch
+new_version=0.1.1
+git checkout -b v$new_version
+tbump new_version
 ```
