@@ -1,3 +1,13 @@
+[tool.poetry]
+name = "multicaller"
+version = "0.1.0"
+description = "web3py multicaller simplified interface"
+authors = ["gerrrg <gerrrrrrrg@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.8,<4"
+
 [build-system]
 requires = [
     "setuptools>=42",
