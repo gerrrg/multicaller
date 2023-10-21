@@ -31,6 +31,9 @@ jobs:
           version: ${{ matrix.poetry-version }}
           virtualenvs-create: true
           installer-parallel: true
+      - name: Install
+        run: |
+          poetry install
 
       - name: Format
         run: |
@@ -43,4 +46,12 @@ jobs:
       - name: Tests
         run: |
             make test
+
+      - name: Lock
+        run: |
+            poetry lock
+
+      - name: Ensure lockfile is up to date
+        run: |
+            git diff --exit-code
 
