@@ -28,3 +28,11 @@ make test
 ```bash
 make all
 ```
+
+### Releasing
+
+We can use tbump to automatically bump our versions in preparation of a release.
+
+```bash 
+tbump --dry-run --bump=patch
+```
