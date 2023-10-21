@@ -19,7 +19,7 @@ tokenAddresses = [	"0x9a71012b13ca4d3d0cdc72a177df3ef03b0e76a3",
 					"0x263534a4fe3cb249df46810718b7b612a30ebbff"
 				];
 
-balancerVault = web3.toChecksumAddress("0xba12222222228d8ba445958a75a0704d566bf2c8");
+balancerVault = web3.to_checksum_address("0xba12222222228d8ba445958a75a0704d566bf2c8");
 
 for tokenAddress in tokenAddresses:
 	mc.addCall(tokenAddress, erc20Abi, 'symbol');

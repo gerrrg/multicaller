@@ -48,7 +48,7 @@ class multicaller(object):
 	@cache
 	def getContract(self, address, abiString):
 		abi = self.stringToList(abiString);
-		contract = self.web3.eth.contract(self.web3.toChecksumAddress(address), abi=abi);
+		contract = self.web3.eth.contract(self.web3.to_checksum_address(address), abi=abi);
 		return(contract);
 
 	@cache
@@ -68,7 +68,7 @@ class multicaller(object):
 		if rawOutput == b'':
 			return None;
 
-		return(self.web3.codec.decode_abi(self.stringToList(decoder), rawOutput));
+		return(self.web3.codec.decode(self.stringToList(decoder), rawOutput));
 
 	def iterArgs(self, args):
 		isTuple = False;
@@ -109,9 +109,9 @@ class multicaller(object):
 
 		payload = None;
 		if self.allowFailure:
-			payload = (self.web3.toChecksumAddress(address), True, callData);
+			payload = (self.web3.to_checksum_address(address), True, callData);
 		else:
-			payload = (self.web3.toChecksumAddress(address), callData);
+			payload = (self.web3.to_checksum_address(address), callData);
 
 		self.payload.append(payload);
 		self.decoders.append(get_abi_output_types(fn.abi));
