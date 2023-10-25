@@ -1,7 +1,7 @@
 import json
 import os
 import pkgutil
-from functools import cache
+from functools import lru_cache as cache
 
 from web3 import Web3
 from web3._utils.abi import get_abi_output_types
