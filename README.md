@@ -35,7 +35,7 @@ make all
 
 ### Releasing
 
-We can use tbump to automatically bump our versions in preparation of a release.
+We can use `tbump` to automatically bump our versions in preparation of a release.
 
 ```bash 
 new_version=0.1.1
