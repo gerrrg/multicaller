@@ -6,7 +6,6 @@ Helper for using multicall to aggregate onchain data calls into a single RPC cal
 * Iteratively breaks up a call bundle if it's too large for the endpoint
 * Uses native web3py contract functions rather than requiring users to [write the function ABI for each call](https://github.com/banteg/multicall.py/blob/9117c552c6ae85acec8452961db0aac51119070b/examples/daistats.py#L77)
 
-
 ## Dev
 
 ### Format
